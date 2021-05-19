@@ -17,7 +17,7 @@ import json
 # uncomment below if you want to use SRU
 # and you need to install SRU: pip install sru[cuda].
 # or you can install it from source code: https://github.com/taolei87/sru.
-# import sru
+import sru
 
 
 class LayerNorm(nn.Module):
@@ -1996,14 +1996,15 @@ class SRU(nn.Module):
             dropout=self.dropout,
             rnn_dropout=self.rnn_dropout,
             bidirectional=self.bidirectional,
-            n_proj=self.n_proj,
+            projection_size = self.n_proj,
+            #n_proj=self.n_proj,
             use_tanh=self.use_tanh,
-            use_selu=self.use_selu,
-            use_relu=self.use_relu,
-            weight_norm=self.weight_norm,
+            #use_selu=self.use_selu,
+            #use_relu=self.use_relu,
+            #weight_norm=self.weight_norm,
             layer_norm=self.layer_norm,
             has_skip_term=self.has_skip_term,
-            is_input_normalized=self.is_input_normalized,
+            #is_input_normalized=self.is_input_normalized,
             highway_bias=self.highway_bias,
             rescale=self.rescale,
         )

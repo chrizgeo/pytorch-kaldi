@@ -13,6 +13,7 @@ from data_io import load_counts
 import numpy as np
 import random
 import torch
+import setuptools
 from distutils.util import strtobool
 import time
 import threading

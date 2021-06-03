@@ -40,7 +40,7 @@ from distutils.util import strtobool
 import importlib
 import math
 import multiprocessing
-from pruner import pruner_main
+import pruner
 
 
 def _run_forwarding_in_subprocesses(config):
@@ -196,6 +196,11 @@ data_end_index = []
 fea_dict = []
 lab_dict = []
 arch_dict = []
+
+if do_prune:
+    pruning_ep = 0
+    #this will init the pruning and do a first round of pruning on the weights
+    active_pruner = pruner.Pruner(cfg_file=cfg_file_list[0], pt_file=pt_files["architecture1"], prune_method='lnstructured', amount=0.7)
 
 
 # --------TRAINING LOOP--------#
@@ -421,7 +426,12 @@ for ep in range(N_ep):
     if do_prune:
         if ep in epochs_to_prune:
             print ("Pruning at epoch : %d \n" % ep)
-            pruner_main(last_trained_cfg, last_pt_file_arch1, out_folder)
+            active_pruner.prune(last_trained_cfg, last_pt_file_arch1)
+            pruning_ep+=1
+
+#finalise pruning
+if do_prune:
+    active_pruner.finalise_pruning(last_trained_cfg, last_pt_file_arch1)
 
 # Training has ended, copy the last .pkl to final_arch.pkl for production
 for pt_arch in pt_files.keys():

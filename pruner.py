@@ -16,12 +16,13 @@ import copy
 
 #the pruner class 
 class Pruner:
-    def __init__(self, cfg_file, pt_file, prune_method='lnstructured', amount=0.2, n=1):
+    def __init__(self, cfg_file, pt_file, prune_method='lnstructured', amount=0.2, n=1,layers_to_prune=[1]):
         print("Init prune objects")
         self.prune_method=prune_method
         self.prune_amount=amount
         self.prune_mask = {}
         self.n = n
+        self.layers_to_prune = layers_to_prune
         if not (os.path.exists(cfg_file)):
             sys.stderr.write("ERROR: The config file %s does not exist!\n" % (cfg_file))
             sys.exit(0)
@@ -83,7 +84,8 @@ class Pruner:
             self._create_default_mask_lstm()
 
     def _init_dict(self):
-        for i in range(1,4):
+        for i in self.layers_to_prune:
+        #for i in range(1,4):
             key_name = "sru.rnn_lst.{}.weight".format(i)
             del self.arch_dict["model_par"][key_name]
             key_name = "sru.rnn_lst.{}.weight_proj".format(i)
@@ -96,7 +98,8 @@ class Pruner:
         self.prune_mask['wp'] = []
         for module in self.net_module.children():
             for _sub_module_list in module.children():
-                for i in range(1,4):
+                for i in self.layers_to_prune:
+                #for i in range(1,4):
                     default_mask = torch.ones(_sub_module_list[i].weight.size())
                     #print(_sub_module_list[i].weight)
                     if _sub_module_list[i].weight.is_cuda:
@@ -140,18 +143,20 @@ class Pruner:
     #call this to save the pruned arch_dict in the final model
     def finalise_pruning(self, cfg_file, pt_file):
         self._structured_sru_final(pt_file)
+        self._print_parameters_sru
 
     def _print_parameters_sru(self):
         print("print parameters")
         for module in self.net_module.children():
             for _sub_module_list in module.children():
                 #print(_sub_module_list[1])
-                for i in range(1,4):
+                for i in self.layers_to_prune:
+                # for i in range(1,4):
                     print("Pruner version")
                     print("sru.rnn_lst.%d.weight" %i)
                     print(_sub_module_list[i].weight)
-                    print("sru.rnn_lst.%d.weight_mask" %i)
-                    print(_sub_module_list[i].weight_mask)
+                    #print("sru.rnn_lst.%d.weight_mask" %i)
+                    #print(_sub_module_list[i].weight_mask)
                     print("Original version")
                     key_name = "sru.rnn_lst.{}.weight".format(i)
                     print(key_name)
@@ -163,14 +168,17 @@ class Pruner:
             key_name = "sru.rnn_lst.{}.weight".format(i)
             key_name_orig = "sru.rnn_lst.{}.weight_orig".format(i)
             key_name_mask = "sru.rnn_lst.{}.weight_mask".format(i)
+            #self.arch_dict["model_par"][key_name] = self.arch_dict_orig["model_par"][key_name]
             self.arch_dict["model_par"][key_name_orig] = self.arch_dict_orig["model_par"][key_name]
             key_name = "sru.rnn_lst.{}.weight_proj".format(i)
             key_name_orig = "sru.rnn_lst.{}.weight_proj_orig".format(i)
             key_name_mask = "sru.rnn_lst.{}.weight_proj_mask".format(i)
+            #self.arch_dict["model_par"][key_name] = self.arch_dict_orig["model_par"][key_name]
             self.arch_dict["model_par"][key_name_orig] = self.arch_dict_orig["model_par"][key_name]
 
     def _update_parameters_sru(self):
-        for i in range(1,4):
+        for i in self.layers_to_prune:
+        # for i in range(1,4):
             key_name = "sru.rnn_lst.{}.weight".format(i)
             key_name_orig = "sru.rnn_lst.{}.weight_orig".format(i)
             self.arch_dict_orig["model_par"][key_name] = self.arch_dict["model_par"][key_name_orig]
@@ -182,7 +190,8 @@ class Pruner:
     def _structured_sru_init(self):
         for module in self.net_module.children():
             for _sub_module_list in module.children():
-                for i in range(1,4):
+                for i in self.layers_to_prune:
+                # for i in range(1,4):
                     self.prune_obj_weight.apply(_sub_module_list[i], name='weight', amount=self.prune_amount, n=self.n, dim=1)
                     self.prune_obj_weight_proj.apply(_sub_module_list[i], name='weight_proj', amount=self.prune_amount, n=self.n, dim=1)
         self._print_parameters_sru()
@@ -195,9 +204,10 @@ class Pruner:
     def _structured_sru_prune(self):
         for module in self.net_module.children():
             for _sub_module_list in module.children():
-                for i in range(1,4):
-                    self.prune_obj_weight.apply(_sub_module_list[i], name='weight', amount=self.prune_amount, n=self.n, dim=1)
-                    self.prune_obj_weight_proj.apply(_sub_module_list[i], name='weight_proj', amount=self.prune_amount, n=self.n, dim=1)
+                for i in self.layers_to_prune:
+                # for i in range(1,4):
+                    _sub_module_list[i].weight = self.prune_obj_weight.prune(_sub_module_list[i].weight_orig, default_mask=_sub_module_list[i].weight_mask )
+                    _sub_module_list[i].weight_proj = self.prune_obj_weight_proj.prune(_sub_module_list[i].weight_proj_orig, default_mask=_sub_module_list[i].weight_proj_mask)
                     
         print("After pruning")
         self._print_parameters_sru()
@@ -207,7 +217,8 @@ class Pruner:
         print("removing hooks")
         for module in self.net_module.children():
             for _sub_module_list in module.children():
-                for i in range(1,4):
+                for i in self.layers_to_prune:
+                # for i in range(1,4):
                     self.prune_obj_weight.remove(_sub_module_list[i])
                     self.prune_obj_weight_proj.remove(_sub_module_list[i])
         self.arch_dict["model_par"] = self.net_module.state_dict()
@@ -216,7 +227,8 @@ class Pruner:
     def _unstructured_sru(self):
         for module in self.net_module.children():
             for _sub_module_list in module.children():
-                for i in range(1,4):
+                for i in self.layers_to_prune:
+                # for i in range(1,4):
                     self.prune_obj_weight._tensor_name = 'weight'
                     self.prune_obj_weight.apply(_sub_module_list[i], name='weight', amount=self.prune_amount)
                     self.prune_mask['w'][i-1] = self.prune_obj_weight.compute_mask(_sub_module_list[i].weight, self.prune_mask['w'][i-1])

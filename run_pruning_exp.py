@@ -116,6 +116,7 @@ max_seq_length_train = config["batches"]["max_seq_length_train"]
 forward_save_files = list(map(strtobool, config["forward"]["save_out_file"].split(",")))
 do_prune = strtobool(config["exp"]["prune"])
 epochs_to_prune = [int(n) for n in config["exp"]["prune_at"].split(",")]
+layers_to_prune = [int(n) for n in config["exp"]["prune_layers"].split(",")]
 
 print("- Reading config file......OK!")
 
@@ -200,7 +201,7 @@ arch_dict = []
 if do_prune:
     pruning_ep = 0
     #this will init the pruning and do a first round of pruning on the weights
-    active_pruner = pruner.Pruner(cfg_file=cfg_file_list[0], pt_file=pt_files["architecture1"], prune_method='lnstructured', amount=0.7)
+    active_pruner = pruner.Pruner(cfg_file=cfg_file_list[0], pt_file=pt_files["architecture1"], prune_method='lnstructured',n=1, amount=0.7, layers_to_prune=layers_to_prune)
 
 
 # --------TRAINING LOOP--------#

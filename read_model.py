@@ -1,11 +1,13 @@
 #!python3
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 import sru
 import neural_networks
 import sys
 import os
+import math
 
 pickle_file = sys.argv[1]
 if not os.path.exists(pickle_file):
@@ -23,14 +25,20 @@ for key in modelDict:
         for innerKey in modelDict[key]:
             if 'weight' in innerKey.split("."):
                 print(innerKey)
-                numpy_array = modelDict[key][innerKey].cpu().detach().numpy()
-                param_count += numpy_array.size
-                print(numpy_array.size)
-                #print(np.max(numpy_array))
-                #print(np.min(numpy_array))
-                zeros_count += np.count_nonzero(numpy_array == 0)
-                print(np.count_nonzero(numpy_array == 0))
-                #plt.hist(numpy_array, bins='auto')
-                #plt.show()
+                np_weights = modelDict[key][innerKey].cpu().detach().numpy()
+                param_count += np_weights.size
+                print(np_weights.size)
+                np_weights_flat = np_weights.flatten()
+                series_data = pd.Series(np_weights_flat)
+                series_data.plot.hist(grid=True, bins=40, rwidth=0.95, color='#0504aa')
+                plt.title(innerKey)
+                plt.xlabel('Weight')
+                plt.ylabel('Count')
+                plt.grid(axis='y', alpha=0.75)
+                plt.show()
+                #hist, bin_edges = np.histogram (np_weights, bins=10, range = None, normed = None, weights = None, density = None)
+                zeros_count += np.count_nonzero(np_weights == 0)
+                print(np.count_nonzero(np_weights == 0))
+
 compression = zeros_count/param_count
 print("Compression ratio : %f " %compression)

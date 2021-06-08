@@ -117,6 +117,11 @@ forward_save_files = list(map(strtobool, config["forward"]["save_out_file"].spli
 do_prune = strtobool(config["exp"]["prune"])
 epochs_to_prune = [int(n) for n in config["exp"]["prune_at"].split(",")]
 layers_to_prune = [int(n) for n in config["exp"]["prune_layers"].split(",")]
+prune_amounts_list = [float(n) for n in config["exp"]["prune_amounts"].split(",")]
+prune_amounts = dict(zip(layers_to_prune,prune_amounts_list))
+prune_amounts_proj_list = [float(n) for n in config["exp"]["prune_amounts_proj"].split(",")]
+prune_amounts_proj = dict(zip(layers_to_prune,prune_amounts_proj_list))
+#print(prune_amounts)
 
 print("- Reading config file......OK!")
 
@@ -201,7 +206,7 @@ arch_dict = []
 if do_prune:
     pruning_ep = 0
     #this will init the pruning and do a first round of pruning on the weights
-    active_pruner = pruner.Pruner(cfg_file=cfg_file_list[0], pt_file=pt_files["architecture1"], prune_method='lnstructured',n=1, amount=0.7, layers_to_prune=layers_to_prune)
+    active_pruner = pruner.Pruner(cfg_file=cfg_file_list[0], pt_file=pt_files["architecture1"], prune_method='lnstructured',n=1, layers_to_prune=layers_to_prune, prune_amounts=prune_amounts, prune_amounts_proj=prune_amounts_proj)
 
 
 # --------TRAINING LOOP--------#

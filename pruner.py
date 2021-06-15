@@ -38,6 +38,7 @@ class Pruner:
         self.use_cuda = strtobool(config["exp"]["use_cuda"])
         self.multi_gpu = strtobool(config["exp"]["multi_gpu"])
         self.model = config["model"]["model"].split("\n")
+        self.pt_file = pt_file
 
         to_do = config["exp"]["to_do"]
         shared_list = []
@@ -122,6 +123,7 @@ class Pruner:
     def prune(self, cfg_file, pt_file):
         print("Pruning")
         print(pt_file)
+        self.pt_file = pt_file
         self.arch_dict_orig = torch.load(pt_file)
         if self.net == "SRU":
             self._copy_parameters_sru()
@@ -143,7 +145,7 @@ class Pruner:
 
     #call this to save the pruned arch_dict in the final model
     def finalise_pruning(self, cfg_file, pt_file):
-        self._structured_sru_final(pt_file)
+        self._structured_sru_final()
         self._print_parameters_sru
 
     def _print_parameters_sru(self):
@@ -178,14 +180,15 @@ class Pruner:
             self.arch_dict["model_par"][key_name_orig] = self.arch_dict_orig["model_par"][key_name]
 
     def _update_parameters_sru(self):
-        for i in self.layers_to_prune:
-        # for i in range(1,4):
-            key_name = "sru.rnn_lst.{}.weight".format(i)
-            key_name_orig = "sru.rnn_lst.{}.weight_orig".format(i)
-            self.arch_dict_orig["model_par"][key_name] = self.arch_dict["model_par"][key_name_orig]
-            key_name = "sru.rnn_lst.{}.weight_proj".format(i)
-            key_name_orig = "sru.rnn_lst.{}.weight_proj_orig".format(i)
-            self.arch_dict_orig["model_par"][key_name] = self.arch_dict["model_par"][key_name_orig]
+        for module in self.net_module.children():
+            for _sub_module_list in module.children():
+                for i in self.layers_to_prune:
+                    key_name = "sru.rnn_lst.{}.weight".format(i)
+                    key_name_orig = "sru.rnn_lst.{}.weight_orig".format(i)
+                    self.arch_dict_orig["model_par"][key_name] = _sub_module_list[i].weight
+                    key_name = "sru.rnn_lst.{}.weight_proj".format(i)
+                    key_name_orig = "sru.rnn_lst.{}.weight_proj_orig".format(i)
+                    self.arch_dict_orig["model_par"][key_name] = _sub_module_list[i].weight_proj
 
     #internal function for applying the hooks and copying the values
     def _structured_sru_init(self):
@@ -212,9 +215,11 @@ class Pruner:
                     
         print("After pruning")
         self._print_parameters_sru()
+        self._update_parameters_sru()
+        torch.save(self.arch_dict_orig, self.pt_file)
         pickle.dump(self.prune_mask, open(self.mask_file, "wb"))
 
-    def _structured_sru_final(self, pt_file):
+    def _structured_sru_final(self):
         print("removing hooks")
         for module in self.net_module.children():
             for _sub_module_list in module.children():
@@ -223,7 +228,7 @@ class Pruner:
                     self.prune_obj_weight.remove(_sub_module_list[i])
                     self.prune_obj_weight_proj.remove(_sub_module_list[i])
         self.arch_dict["model_par"] = self.net_module.state_dict()
-        torch.save(self.arch_dict, pt_file)
+        torch.save(self.arch_dict, self.pt_file)
  
     def _unstructured_sru(self):
         for module in self.net_module.children():

@@ -76,12 +76,13 @@ class Pruner:
                 self.prune_obj_weight._tensor_name = 'weight'
                 self.prune_obj_weight_proj = prune.LnStructured(0.2, n=self.n)
                 self.prune_obj_weight_proj._tensor_name = 'weight_proj'
-                self._structured_sru_init()
+                self._sru_init_pruner()
             elif self.prune_method == 'unstructured':
-                self.prune_obj_weight = prune.L1Unstructured(0.2, n=self.n)
+                self.prune_obj_weight = prune.L1Unstructured(0.2)
                 self.prune_obj_weight._tensor_name = 'weight'
-                self.prune_obj_weight_proj = prune.L1Unstructured(0.2, n=self.n)
+                self.prune_obj_weight_proj = prune.L1Unstructured(0.2)
                 self.prune_obj_weight_proj._tensor_name = 'weight_proj'
+                self._sru_init_pruner()
         elif self.net == "LSTM":
             self._create_default_mask_lstm()
 
@@ -129,10 +130,7 @@ class Pruner:
             self._copy_parameters_sru()
             self.net_module.load_state_dict(self.arch_dict["model_par"])
             self._print_parameters_sru()
-            if self.prune_method == 'lnstructured':
-                self._structured_sru_prune()
-            elif self.prune_method == 'unstructured':
-                self._unstructured_sru()
+            self._sru_prune_once()
             self.arch_dict["model_par"] = self.net_module.state_dict()
             self._update_parameters_sru()    
         elif self.net == "LSTM":
@@ -145,7 +143,7 @@ class Pruner:
 
     #call this to save the pruned arch_dict in the final model
     def finalise_pruning(self, cfg_file, pt_file):
-        self._structured_sru_final()
+        self._sru_finalize_pruner()
         self._print_parameters_sru
 
     def _print_parameters_sru(self):
@@ -191,13 +189,16 @@ class Pruner:
                     self.arch_dict_orig["model_par"][key_name] = _sub_module_list[i].weight_proj
 
     #internal function for applying the hooks and copying the values
-    def _structured_sru_init(self):
+    def _sru_init_pruner(self):
         for module in self.net_module.children():
             for _sub_module_list in module.children():
                 for i in self.layers_to_prune:
-                # for i in range(1,4):
-                    self.prune_obj_weight.apply(_sub_module_list[i], name='weight', amount=self.prune_amount[i], n=self.n, dim=1)
-                    self.prune_obj_weight_proj.apply(_sub_module_list[i], name='weight_proj', amount=self.prune_amount_proj[i], n=self.n, dim=1)
+                    if self.prune_method == 'lnstructured':
+                        self.prune_obj_weight.apply(_sub_module_list[i], name='weight', amount=self.prune_amount[i], n=self.n, dim=1)
+                        self.prune_obj_weight_proj.apply(_sub_module_list[i], name='weight_proj', amount=self.prune_amount_proj[i], n=self.n, dim=1)
+                    elif self.prune_method == 'unstructured':
+                        self.prune_obj_weight.apply(_sub_module_list[i], name='weight', amount=self.prune_amount[i])
+                        self.prune_obj_weight_proj.apply(_sub_module_list[i], name='weight_proj', amount=self.prune_amount_proj[i])                       
         self._print_parameters_sru()
         self.arch_dict["model_par"] = self.net_module.state_dict()
         self._update_parameters_sru() 
@@ -205,7 +206,7 @@ class Pruner:
         for param_tensor in self.net_module.state_dict():
             print(param_tensor, "\t", self.net_module.state_dict()[param_tensor].size())
 
-    def _structured_sru_prune(self):
+    def _sru_prune_once(self):
         for module in self.net_module.children():
             for _sub_module_list in module.children():
                 for i in self.layers_to_prune:
@@ -219,7 +220,8 @@ class Pruner:
         torch.save(self.arch_dict_orig, self.pt_file)
         pickle.dump(self.prune_mask, open(self.mask_file, "wb"))
 
-    def _structured_sru_final(self):
+
+    def _sru_finalize_pruner(self):
         print("removing hooks")
         for module in self.net_module.children():
             for _sub_module_list in module.children():
@@ -229,7 +231,7 @@ class Pruner:
                     self.prune_obj_weight_proj.remove(_sub_module_list[i])
         self.arch_dict["model_par"] = self.net_module.state_dict()
         torch.save(self.arch_dict, self.pt_file)
- 
+
     def _unstructured_sru(self):
         for module in self.net_module.children():
             for _sub_module_list in module.children():

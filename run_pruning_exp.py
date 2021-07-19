@@ -122,7 +122,7 @@ prune_amounts = dict(zip(layers_to_prune,prune_amounts_list))
 prune_amounts_proj_list = [float(n) for n in config["exp"]["prune_amounts_proj"].split(",")]
 prune_amounts_proj = dict(zip(layers_to_prune,prune_amounts_proj_list))
 #print(prune_amounts)
-
+prune_method = config["exp"]["prune_method"]
 print("- Reading config file......OK!")
 
 
@@ -206,7 +206,7 @@ arch_dict = []
 if do_prune:
     pruning_ep = 0
     #this will init the pruning and do a first round of pruning on the weights
-    active_pruner = pruner.Pruner(cfg_file=cfg_file_list[0], pt_file=pt_files["architecture1"], prune_method='lnstructured',n=1, layers_to_prune=layers_to_prune, prune_amounts=prune_amounts, prune_amounts_proj=prune_amounts_proj)
+    active_pruner = pruner.Pruner(cfg_file=cfg_file_list[0], pt_file=pt_files["architecture1"], prune_method=prune_method ,n=1, layers_to_prune=layers_to_prune, prune_amounts=prune_amounts, prune_amounts_proj=prune_amounts_proj)
 
 
 # --------TRAINING LOOP--------#

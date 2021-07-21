@@ -232,24 +232,6 @@ class Pruner:
         self.arch_dict["model_par"] = self.net_module.state_dict()
         torch.save(self.arch_dict, self.pt_file)
 
-    def _unstructured_sru(self):
-        for module in self.net_module.children():
-            for _sub_module_list in module.children():
-                for i in self.layers_to_prune:
-                # for i in range(1,4):
-                    self.prune_obj_weight._tensor_name = 'weight'
-                    self.prune_obj_weight.apply(_sub_module_list[i], name='weight', amount=self.prune_amount[i])
-                    self.prune_mask['w'][i-1] = self.prune_obj_weight.compute_mask(_sub_module_list[i].weight, self.prune_mask['w'][i-1])
-                    self.prune_obj_weight.prune(_sub_module_list[i].weight,self.prune_mask['w'][i-1])
-                    self.prune_obj_weight.remove(_sub_module_list[i])
-                    self.prune_obj_weight_proj._tensor_name = 'weight_proj'
-                    self.prune_obj_weight_proj.apply(_sub_module_list[i], name='weight_proj', amount=self.prune_amount_proj[i])
-                    self.prune_mask['wp'][i-1] = self.prune_obj_weight.compute_mask(_sub_module_list[i].weight_proj, self.prune_mask['wp'][i-1])
-                    self.prune_obj_weight_proj.prune(_sub_module_list[i].weight, self.prune_mask['wp'][i-1])
-                    self.prune_obj_weight_proj.remove(_sub_module_list[i])
-
-        pickle.dump(self.prune_mask, open(self.mask_file, "wb"))
-
     def structured_lstm(self):
         pass
     def unstructured_lstm(self):

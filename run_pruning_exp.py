@@ -436,8 +436,8 @@ for ep in range(N_ep):
             pruning_ep+=1
 
 #finalise pruning
-if do_prune:
-    active_pruner.finalise_pruning(last_trained_cfg, last_pt_file_arch1)
+# if do_prune:
+#     active_pruner.finalise_pruning(last_trained_cfg, last_pt_file_arch1)
 
 # Training has ended, copy the last .pkl to final_arch.pkl for production
 for pt_arch in pt_files.keys():

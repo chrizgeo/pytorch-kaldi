@@ -173,6 +173,7 @@ class Pruner:
         The same method as with SRU is repeated here, with the only difference with how the 
         layers are iterated"""
     def _lstm_prune_once(self):
+        print("Pruner-INFO-pruning LSTM")
         # init pruning object
         # the hooks and the object needs to be created every time the pruning is done 
         # since the training is spread out with each epoch creating a model dict
@@ -190,7 +191,7 @@ class Pruner:
         for _module_list in self.net_module.children():
             for i in self.layers_to_prune:
                 #print(_module_list[i])
-                if _module_list[i] == nn.Linear:
+                if type(_module_list[i]) == nn.Linear:
                     if self.prune_method == 'lnstructured':
                         self.prune_obj_weight.apply(_module_list[i], name='weight', amount=self.prune_amount[i], n=self.n, dim=1)
                     elif self.prune_method == 'unstructured':
@@ -199,8 +200,8 @@ class Pruner:
         # prune the individual weights
         for _module_list in self.net_module.children():
             for i in self.layers_to_prune:
-                #print(_module_list[i])
-                if _module_list[i] == nn.Linear:
+                #print("Pruner-INFO-Pruning weights")
+                if type(_module_list[i]) == nn.Linear:
                     _module_list[i].weight = self.prune_obj_weight.prune(_module_list[i].weight, default_mask=_module_list[i].weight_mask )
 
         # remove hooks
@@ -209,7 +210,7 @@ class Pruner:
         for _module_list in self.net_module.children():
             for i in self.layers_to_prune:
                 #print(_module_list[i])
-                if _module_list[i] == nn.Linear:
+                if type(_module_list[i]) == nn.Linear:
                     self.prune_obj_weight.remove(_module_list[i])
         
         # save the weights to the file
